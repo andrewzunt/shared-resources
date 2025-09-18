@@ -1,0 +1,14 @@
+{
+  "name": "sascha",
+  "version": "1.0.0",
+  "description": "An application for Sascha to manage shared resources within his community",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^9.35.0"
+  }
+}
