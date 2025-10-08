@@ -1,0 +1,15 @@
+service: shared-resources-home
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-west-2
+  deploymentBucket:
+    name: andrew-zunt-serverless-deploy-bucket
+
+functions:
+  api:
+    handler: handler.main
+    # events:
+    #   - httpApi:
+    #       path: /
+    #       method: ANY
