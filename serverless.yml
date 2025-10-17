@@ -5,11 +5,77 @@ provider:
   region: us-west-2
   deploymentBucket:
     name: andrew-zunt-serverless-deploy-bucket
+  httpApi:
+    cors: true
+    resourcePolicy:
+      - Effect: Deny
+        Principal: "*"
+        Action: execute-api:Invoke
+        Resource: "arn:aws:execute-api:*:*:*/**"
+        Condition:
+          StringNotEqualsIfExists:
+            aws:RequestHeader/X-Origin-Secret: "trusted-origin-header-sascha"
 
 functions:
   api:
     handler: handler.main
-    # events:
-    #   - httpApi:
-    #       path: /
-    #       method: ANY
+    events:
+      - httpApi:
+          path: /
+          method: ANY
+
+resources:
+  Resources:
+    # CloudFront Function (JS code referenced from a file)
+    HeaderCheckFunction:
+      Type: AWS::CloudFront::Function
+      Properties:
+        Name: header-check-function
+        FunctionConfig:
+          Comment: "Blocks requests that are not allow-listed"
+          Runtime: cloudfront-js-1.0
+        FunctionCode: |
+          function handler(event) {
+            var headers = event.request.headers;
+            var auth = headers['x-access-token'];
+
+            if (!auth || auth.value !== 'saschaIsSuperCool') {
+              return {
+                statusCode: 403,
+                statusDescription: 'Forbidden',
+                headers: {
+                  'content-type': { value: 'text/plain' },
+                },
+                body: 'Access Denied',
+              };
+            }
+
+            return event.request;
+          }
+    
+    # CloudFront Distribution
+    CloudFrontDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Enabled: true
+          DefaultRootObject: ""
+          Origins:
+            - Id: ApiOrigin
+              DomainName: !Select [2, !Split ["/", !GetAtt HttpApi.ApiEndpoint]]
+              CustomOriginConfig:
+                OriginProtocolPolicy: https-only
+              OriginCustomHeaders:
+                - HeaderName: X-Origin-Secret
+                  HeaderValue: trusted-origin-header-sascha
+          DefaultCacheBehavior:
+            TargetOriginId: ApiOrigin
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt HeaderCheckFunction.FunctionARN
+          ViewerCertificate:
+            CloudFrontDefaultCertificate: true
