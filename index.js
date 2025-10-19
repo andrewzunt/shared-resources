@@ -41,6 +41,8 @@ app.post('/add-resource', (req, res) => {
   res.json(result);
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Server running at http://localhost:${port}`);
+// });
+
+module.exports = app;
